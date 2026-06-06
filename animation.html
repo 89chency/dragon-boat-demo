@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>龍舟划槳動作示範</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1C2B4A;
+  font-family: 'Microsoft JhengHei', 'Noto Sans TC', sans-serif;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  min-height: 100vh; color: #fff; user-select: none;
+}
+.card {
+  background: #f8f9fb;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  width: 600px; height: 330px;
+}
+.card canvas { position: absolute; inset: 0; }
+.progress-bar {
+  margin-top: 12px; width: 600px; height: 4px;
+  background: rgba(255,255,255,0.12); border-radius: 2px; overflow: hidden;
+}
+.progress-fill { height: 100%; background: #F0C040; border-radius: 2px; }
+.info { margin-top: 16px; text-align: center; min-width: 600px; }
+.phase-name { font-size: 20px; font-weight: 700; color: #F0C040; min-height: 28px; }
+.phase-cue  { margin-top: 7px; font-size: 13px; color: rgba(255,255,255,0.7); min-height: 36px; line-height: 1.6; white-space: pre-line; }
+.controls { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+.btn {
+  background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.14);
+  color: #fff; padding: 7px 20px; border-radius: 20px;
+  cursor: pointer; font-size: 13px; transition: background 0.2s;
+}
+.btn:hover { background: rgba(255,255,255,0.16); }
+.btn.on { background: rgba(240,192,64,0.18); border-color: #F0C040; color: #F0C040; }
+.sep { color: rgba(255,255,255,0.18); }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <canvas id="c" width="600" height="330"></canvas>
+</div>
+<div class="progress-bar"><div class="progress-fill" id="progFill"></div></div>
+<div class="info">
+  <div class="phase-name" id="phaseName">預備入水</div>
+  <div class="phase-cue"  id="phaseCue"></div>
+</div>
+<div class="controls">
+  <button class="btn" id="btnPlay" onclick="togglePlay()">⏸ 暫停</button>
+  <span class="sep">|</span>
+  <button class="btn on" id="s1" onclick="setSpeed(0.001,this)">慢</button>
+  <button class="btn" id="s2" onclick="setSpeed(0.003,this)">中</button>
+  <button class="btn" id="s3" onclick="setSpeed(0.008,this)">快</button>
+  <span class="sep">|</span>
+  <button class="btn" id="btnDbg" onclick="toggleDebug()">錨點</button>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+/* ─── 關鍵影格資訊 ─────────────────────────────── */
+const KF = [
+  { name:'A 字框架',
+    cue:'下背打直・身體向前延伸・肩膀推前呈側身\n前手置於前方肩高，形成 A 字框架\n框架穩定支撐，核心撐住' },
+  { name:'準備入槳抓水',
+    cue:'垂直加速度・用身體入水\n入水快、狠、準——快速垂直入水\n產生大面積阻力，將動能轉為推力' },
+  { name:'槳要插深',
+    cue:'深度 ∝ 阻力 ∝ 推力\n槳葉越深，反作用阻力越大，推力越強\n短時間高加速，需較深的抓水' },
+  { name:'回槳放鬆',
+    cue:'回槳不外開・避免阻水\n放鬆回位，準備下一次入水' },
+];
+const N = KF.length;
+
+/* ─── 錨點：屁股在 canvas 上的固定位置 ──────────
+   依使用者截圖標記校準（343, 255）
+   ─────────────────────────────────────────────── */
+const ANCHOR = { x: 400, y: 258 };
+
+/* ─── 各圖的屁股位置（相對比例）─────────────────
+   rx = 屁股在原圖的 x 佔總寬比例
+   ry = 屁股在原圖的 y 佔總高比例
+   新圖初始目測值，需校準
+   ─────────────────────────────────────────────── */
+const HIP = [
+  { rx: 0.95, ry: 0.659 },  // pose_1  錨點→髖骨
+  { rx: 0.84, ry: 0.660 },   // pose_2  校準完成
+  { rx: 0.86, ry: 0.565 },   // pose_3  校準完成
+  { rx: 0.75, ry: 0.589 },   // pose_4  校準完成
+];
+
+/* ─── 縮放比例（per-image，以高度為基準）────────
+   pose_1 前傾幅度最大，人物垂直跨度較短，需放大補足
+   ─────────────────────────────────────────────── */
+const DISPLAY_H = [420, 300, 300, 300];
+
+/* ─── 每幀靜止比例 ───────────────────────────────
+   0.5 = 50% 靜止展示 + 50% crossfade
+   調高讓每個姿勢停留更久；調低讓動畫更流暢
+   ─────────────────────────────────────────────── */
+const HOLD = 0.5;
+
+/* ─── 載入圖片 ─────────────────────────────────── */
+const SRCS = [
+  'pose_1_red_black_hd.png',
+  'pose_2_red_black_hd.png',
+  'pose_3_red_black_hd.png',
+  'pose_4_lower_hand_left_up_hd.png',
+];
+const imgs = SRCS.map(src => {
+  const img = new Image();
+  img.src = src;
+  return img;
+});
+
+/* ─── easing ──────────────────────────────────── */
+const smooth = t => t * t * (3 - 2 * t);
+
+/* ─── 錨點對齊繪圖 ─────────────────────────────── */
+function drawImg(img, hip, alpha, dispH) {
+  if (!img || !img.complete || !img.naturalHeight) return;
+  const scale = dispH / img.naturalHeight;
+  const dw = img.naturalWidth  * scale;
+  const dh = img.naturalHeight * scale;
+  // 位移：讓屁股對齊 ANCHOR
+  const ox = ANCHOR.x - hip.rx * dw;
+  const oy = ANCHOR.y - hip.ry * dh;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img, ox, oy, dw, dh);
+  ctx.restore();
+}
+
+/* ─── 主繪製 ───────────────────────────────────── */
+let showDebug = false;
+
+function draw(p) {
+  const raw  = ((p % 1) + 1) % 1 * N;
+  const ci   = Math.floor(raw) % N;
+  const ni   = (ci + 1) % N;
+  const frac = raw - ci;  // 0~1：這一幀內的進度
+
+  // 靜止 → crossfade 兩段 alpha
+  let alphaCi, alphaNi;
+  if (frac <= HOLD) {
+    alphaCi = 1;           // 靜止：只顯示 ci
+    alphaNi = 0;
+  } else {
+    const t = smooth((frac - HOLD) / (1 - HOLD));  // crossfade 0→1
+    alphaCi = 1 - t;
+    alphaNi = t;
+  }
+
+  // 白底
+  ctx.fillStyle = '#f8f9fb';
+  ctx.fillRect(0, 0, W, H);
+
+  // 錨點對齊溶接
+  drawImg(imgs[ci], HIP[ci], alphaCi, DISPLAY_H[ci]);
+  drawImg(imgs[ni], HIP[ni], alphaNi, DISPLAY_H[ni]);
+
+  // 偵錯：顯示錨點（屁股位置）
+  if (showDebug) {
+    ctx.save();
+    ctx.strokeStyle = 'red'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(ANCHOR.x, ANCHOR.y, 8, 0, Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ANCHOR.x-14,ANCHOR.y); ctx.lineTo(ANCHOR.x+14,ANCHOR.y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ANCHOR.x,ANCHOR.y-14); ctx.lineTo(ANCHOR.x,ANCHOR.y+14); ctx.stroke();
+    ctx.fillStyle = 'red'; ctx.font = '11px sans-serif';
+    ctx.fillText('髖部錨點', ANCHOR.x+12, ANCHOR.y+4);
+    ctx.restore();
+  }
+
+  // 文字：靜止期 = ci；crossfade 過半才切換到 ni
+  const di = frac > HOLD + (1 - HOLD) * 0.5 ? ni : ci;
+  document.getElementById('phaseName').textContent = KF[di].name;
+  document.getElementById('phaseCue').textContent  = KF[di].cue;
+  document.getElementById('progFill').style.width  = (((p%1)+1)%1 * 100).toFixed(1) + '%';
+}
+
+/* ─── 動畫迴圈 ─────────────────────────────────── */
+let progress=0, speed=0.001, playing=true, lastTs=null;
+
+function loop(ts) {
+  if (!lastTs) lastTs = ts;
+  const dt = Math.min(ts - lastTs, 50) / 1000; lastTs = ts;
+  if (playing) progress = (progress + speed * dt * 60) % 1;
+  draw(progress);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+/* ─── 控制項 ───────────────────────────────────── */
+const btnPlay = document.getElementById('btnPlay');
+const btnDbg  = document.getElementById('btnDbg');
+
+function togglePlay() {
+  playing = !playing;
+  btnPlay.textContent = playing ? '⏸ 暫停' : '▶ 播放';
+}
+function setSpeed(s, el) {
+  speed = s;
+  ['s1','s2','s3'].forEach(id => document.getElementById(id).classList.remove('on'));
+  el.classList.add('on');
+}
+function toggleDebug() {
+  showDebug = !showDebug;
+  btnDbg.classList.toggle('on', showDebug);
+}
+document.addEventListener('keydown', e => {
+  if (e.key === ' ')          { togglePlay(); e.preventDefault(); }
+  if (e.key === 'ArrowRight') progress = (progress + 0.25) % 1;
+  if (e.key === 'ArrowLeft')  progress = ((progress - 0.25) + 1) % 1;
+  if (e.key === 'd')          toggleDebug();
+});
+
+/* ─── 點擊校準：debug 模式時點畫面設定錨點 ──────── */
+canvas.addEventListener('click', e => {
+  if (!showDebug) return;
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width  / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const cx = (e.clientX - rect.left) * scaleX;
+  const cy = (e.clientY - rect.top)  * scaleY;
+
+  const raw = ((progress % 1) + 1) % 1 * N;
+  const ci  = Math.floor(raw) % N;
+  const img = imgs[ci];
+  const dispH = DISPLAY_H[ci];
+  if (!img || !img.naturalWidth) return;
+
+  const scale = dispH / img.naturalHeight;
+  const dw = img.naturalWidth  * scale;
+  const dh = img.naturalHeight * scale;
+  const ox = ANCHOR.x - HIP[ci].rx * dw;
+  const oy = ANCHOR.y - HIP[ci].ry * dh;
+
+  const new_rx = (cx - ox) / dw;
+  const new_ry = (cy - oy) / dh;
+  if (new_rx < 0 || new_rx > 1 || new_ry < 0 || new_ry > 1) return;
+
+  HIP[ci].rx = +new_rx.toFixed(4);
+  HIP[ci].ry = +new_ry.toFixed(4);
+  draw(progress);
+
+  const msg = 'pose_' + (ci+1) + '  rx=' + HIP[ci].rx + '  ry=' + HIP[ci].ry;
+  console.log('[錨點校準]', msg);
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.65)';
+  ctx.fillRect(4, canvas.height-22, canvas.width-8, 20);
+  ctx.fillStyle = '#4f4';
+  ctx.font = '12px monospace';
+  ctx.fillText(msg, 8, canvas.height-6);
+  ctx.restore();
+});
+</script>
+</body>
+</html>
