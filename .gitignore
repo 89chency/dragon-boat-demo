@@ -1,0 +1,15 @@
+# 大型參考素材（HTML 未使用，不部署）
+1780722724301.jpg
+poses_clothing_reference_hd_v2.png
+assets/
+
+# 已淘汰的 PPT 流程
+*.pptx
+make_ppt.py
+
+# 本機開發設定
+.claude/
+
+# 系統暫存
+Thumbs.db
+.DS_Store

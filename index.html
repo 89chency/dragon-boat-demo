@@ -9,55 +9,128 @@
 body {
   background: #1C2B4A;
   font-family: 'Microsoft JhengHei', 'Noto Sans TC', sans-serif;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  min-height: 100vh; color: #fff; user-select: none;
+  color: #fff; user-select: none;
+  -webkit-text-size-adjust: 100%;
+  min-height: 100vh;
+  padding: 28px 16px 48px;
+  display: flex; flex-direction: column; align-items: center;
 }
+.wrap { width: 100%; max-width: 620px; display: flex; flex-direction: column; align-items: center; }
+
+h1 { font-size: 22px; font-weight: 800; letter-spacing: 1px; text-align: center; }
+h1 small { display: block; font-size: 13px; font-weight: 400; color: rgba(255,255,255,0.55); margin-top: 6px; letter-spacing: 0; }
+
+.section-label {
+  align-self: stretch; display: flex; align-items: center; gap: 8px;
+  font-size: 15px; font-weight: 700; color: #F0C040; margin: 26px 0 12px;
+}
+
 .card {
-  background: #f8f9fb;
-  border-radius: 12px;
-  overflow: hidden;
-  position: relative;
-  width: 600px; height: 330px;
+  background: #f8f9fb; border-radius: 12px; overflow: hidden; position: relative;
+  width: 100%; max-width: 600px; aspect-ratio: 600 / 330;
 }
-.card canvas { position: absolute; inset: 0; }
+.card canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+
 .progress-bar {
-  margin-top: 12px; width: 600px; height: 4px;
+  margin-top: 12px; width: 100%; max-width: 600px; height: 4px;
   background: rgba(255,255,255,0.12); border-radius: 2px; overflow: hidden;
 }
 .progress-fill { height: 100%; background: #F0C040; border-radius: 2px; }
-.info { margin-top: 16px; text-align: center; min-width: 600px; }
+
+.info { margin-top: 16px; text-align: center; width: 100%; max-width: 600px; }
 .phase-name { font-size: 20px; font-weight: 700; color: #F0C040; min-height: 28px; }
-.phase-cue  { margin-top: 7px; font-size: 13px; color: rgba(255,255,255,0.7); min-height: 36px; line-height: 1.6; white-space: pre-line; }
-.controls { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+.phase-cue  { margin-top: 7px; font-size: 14px; color: rgba(255,255,255,0.72); line-height: 1.7; white-space: pre-line; }
+
+.controls { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
 .btn {
   background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.14);
-  color: #fff; padding: 7px 20px; border-radius: 20px;
-  cursor: pointer; font-size: 13px; transition: background 0.2s;
+  color: #fff; padding: 10px 20px; border-radius: 22px;
+  cursor: pointer; font-size: 14px; transition: background 0.2s;
+  -webkit-tap-highlight-color: transparent;
 }
 .btn:hover { background: rgba(255,255,255,0.16); }
 .btn.on { background: rgba(240,192,64,0.18); border-color: #F0C040; color: #F0C040; }
-.sep { color: rgba(255,255,255,0.18); }
+
+.speed { display: flex; align-items: center; gap: 12px; width: 100%; max-width: 600px; margin-top: 16px; }
+.speed-lbl { flex: 0 0 auto; font-size: 13px; color: rgba(255,255,255,0.6); }
+.speed input[type=range] {
+  flex: 1; -webkit-appearance: none; appearance: none;
+  height: 6px; border-radius: 3px; background: rgba(255,255,255,0.15); outline: none;
+}
+.speed input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 24px; height: 24px; border-radius: 50%; background: #F0C040; cursor: pointer; border: none;
+}
+.speed input[type=range]::-moz-range-thumb {
+  width: 24px; height: 24px; border-radius: 50%; background: #F0C040; cursor: pointer; border: none;
+}
+
+/* ── 說明區塊 ── */
+.guide {
+  align-self: stretch; margin-top: 30px;
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 14px; padding: 20px 20px 22px;
+}
+.guide h2 { font-size: 17px; font-weight: 800; margin-bottom: 14px; }
+
+.step { display: flex; gap: 14px; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.07); font-size: 15px; line-height: 1.6; }
+.step:last-child { border-bottom: none; padding-bottom: 0; }
+.step .k { flex: 0 0 52px; font-weight: 800; color: #F0C040; }
+.step .v { flex: 1; color: rgba(255,255,255,0.86); }
+
+.check { display: flex; flex-wrap: wrap; gap: 6px 12px; padding: 12px 14px; border-radius: 10px; font-size: 14.5px; line-height: 1.6; margin-bottom: 10px; }
+.check .tag { font-weight: 800; flex: 0 0 auto; }
+.check .txt { color: rgba(255,255,255,0.86); }
+.check.ok  { background: rgba(80,200,120,0.12); border: 1px solid rgba(80,200,120,0.35); }
+.check.ok .tag { color: #5fd18a; }
+.check.bad { background: rgba(230,90,90,0.12); border: 1px solid rgba(230,90,90,0.35); }
+.check.bad .tag { color: #f08a8a; }
+
+.mnemonic { margin-top: 14px; text-align: center; padding: 18px 16px; border-radius: 12px; background: rgba(240,192,64,0.12); border: 1px dashed rgba(240,192,64,0.5); }
+.mnemonic .label { font-size: 13px; color: rgba(255,255,255,0.6); margin-bottom: 10px; }
+.mnemonic .phrase { font-size: 19px; font-weight: 800; color: #F0C040; letter-spacing: 0.5px; line-height: 1.6; word-break: break-word; }
 </style>
 </head>
 <body>
+<div class="wrap">
+  <h1>龍舟划槳動作示範<small>動作分解 × 船上實做重點</small></h1>
 
-<div class="card">
-  <canvas id="c" width="600" height="330"></canvas>
-</div>
-<div class="progress-bar"><div class="progress-fill" id="progFill"></div></div>
-<div class="info">
-  <div class="phase-name" id="phaseName">預備入水</div>
-  <div class="phase-cue"  id="phaseCue"></div>
-</div>
-<div class="controls">
-  <button class="btn" id="btnPlay" onclick="togglePlay()">⏸ 暫停</button>
-  <span class="sep">|</span>
-  <button class="btn on" id="s1" onclick="setSpeed(0.001,this)">慢</button>
-  <button class="btn" id="s2" onclick="setSpeed(0.003,this)">中</button>
-  <button class="btn" id="s3" onclick="setSpeed(0.008,this)">快</button>
-  <span class="sep">|</span>
-  <button class="btn" id="btnDbg" onclick="toggleDebug()">錨點</button>
+  <div class="section-label">動作分解動畫</div>
+  <div class="card">
+    <canvas id="c" width="600" height="330"></canvas>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progFill"></div></div>
+  <div class="info">
+    <div class="phase-name" id="phaseName">預備入水</div>
+    <div class="phase-cue"  id="phaseCue"></div>
+  </div>
+  <div class="controls">
+    <button class="btn" id="btnPlay" onclick="togglePlay()">⏸ 暫停</button>
+    <button class="btn" id="btnDbg" onclick="toggleDebug()">錨點</button>
+  </div>
+  <div class="speed">
+    <span class="speed-lbl">慢</span>
+    <input type="range" id="spd" min="1" max="12" value="3" step="1"
+           aria-label="動畫速度" oninput="onSpeed(this.value)">
+    <span class="speed-lbl">快</span>
+  </div>
+
+  <section class="guide">
+    <h2>船上實做版</h2>
+    <div class="step"><div class="k">入水</div><div class="v">槳葉先插滿，先別急著拉</div></div>
+    <div class="step"><div class="k">發力</div><div class="v">腳先頂、腰一起轉、背一起帶</div></div>
+    <div class="step"><div class="k">出水</div><div class="v">拉到大腿或髖旁就出水，不要拖太後面</div></div>
+  </section>
+
+  <section class="guide">
+    <h2>發力・自我檢查口訣</h2>
+    <div class="check ok"><span class="tag">✓ 對的感覺</span><span class="txt">腿有頂到、側腰有轉到、背有出力</span></div>
+    <div class="check bad"><span class="tag">✗ 錯的感覺</span><span class="txt">手先爆酸、肩膀聳起來、上手亂晃</span></div>
+    <div class="mnemonic">
+      <div class="label">口訣直接背</div>
+      <div class="phrase">插滿水，先蹬腿，<br>轉腰背帶，手最後</div>
+    </div>
+  </section>
 </div>
 
 <script>
@@ -187,7 +260,7 @@ function draw(p) {
 }
 
 /* ─── 動畫迴圈 ─────────────────────────────────── */
-let progress=0, speed=0.001, playing=true, lastTs=null;
+let progress=0, speed=0.003, playing=true, lastTs=null;
 
 function loop(ts) {
   if (!lastTs) lastTs = ts;
@@ -206,10 +279,8 @@ function togglePlay() {
   playing = !playing;
   btnPlay.textContent = playing ? '⏸ 暫停' : '▶ 播放';
 }
-function setSpeed(s, el) {
-  speed = s;
-  ['s1','s2','s3'].forEach(id => document.getElementById(id).classList.remove('on'));
-  el.classList.add('on');
+function onSpeed(v) {
+  speed = v * 0.001;   // 滑桿 1~12 → 每幀 0.001~0.012
 }
 function toggleDebug() {
   showDebug = !showDebug;
