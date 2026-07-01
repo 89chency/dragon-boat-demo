@@ -1,0 +1,13 @@
+{
+  "deployType": "static-html",
+  "entryFile": "index.html",
+  "repo": "89chency/dragon-boat-demo",
+  "hostingProvider": "cloudflare-pages",
+  "siteName": "dragon-boat-demo",
+  "productionBranch": "master",
+  "pagesUrl": "https://dragon-boat-demo.pages.dev",
+  "productionDomain": "https://dragon-boat.89chency.com",
+  "subdomainZone": "89chency.com",
+  "subdomainName": "dragon-boat",
+  "firstDeployCompleted": true
+}
