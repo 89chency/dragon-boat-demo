@@ -106,7 +106,6 @@ h1 small { display: block; font-size: 13px; font-weight: 400; color: rgba(255,25
   </div>
   <div class="controls">
     <button class="btn" id="btnPlay" onclick="togglePlay()">⏸ 暫停</button>
-    <button class="btn" id="btnDbg" onclick="toggleDebug()">錨點</button>
   </div>
   <div class="speed">
     <span class="speed-lbl">慢</span>
@@ -213,8 +212,6 @@ function drawImg(img, hip, alpha, dispH) {
 }
 
 /* ─── 主繪製 ───────────────────────────────────── */
-let showDebug = false;
-
 function draw(p) {
   const raw  = ((p % 1) + 1) % 1 * N;
   const ci   = Math.floor(raw) % N;
@@ -240,18 +237,6 @@ function draw(p) {
   drawImg(imgs[ci], HIP[ci], alphaCi, DISPLAY_H[ci]);
   drawImg(imgs[ni], HIP[ni], alphaNi, DISPLAY_H[ni]);
 
-  // 偵錯：顯示錨點（屁股位置）
-  if (showDebug) {
-    ctx.save();
-    ctx.strokeStyle = 'red'; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.arc(ANCHOR.x, ANCHOR.y, 8, 0, Math.PI*2); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(ANCHOR.x-14,ANCHOR.y); ctx.lineTo(ANCHOR.x+14,ANCHOR.y); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(ANCHOR.x,ANCHOR.y-14); ctx.lineTo(ANCHOR.x,ANCHOR.y+14); ctx.stroke();
-    ctx.fillStyle = 'red'; ctx.font = '11px sans-serif';
-    ctx.fillText('髖部錨點', ANCHOR.x+12, ANCHOR.y+4);
-    ctx.restore();
-  }
-
   // 文字：靜止期 = ci；crossfade 過半才切換到 ni
   const di = frac > HOLD + (1 - HOLD) * 0.5 ? ni : ci;
   document.getElementById('phaseName').textContent = KF[di].name;
@@ -273,7 +258,6 @@ requestAnimationFrame(loop);
 
 /* ─── 控制項 ───────────────────────────────────── */
 const btnPlay = document.getElementById('btnPlay');
-const btnDbg  = document.getElementById('btnDbg');
 
 function togglePlay() {
   playing = !playing;
@@ -282,55 +266,10 @@ function togglePlay() {
 function onSpeed(v) {
   speed = v * 0.001;   // 滑桿 1~12 → 每幀 0.001~0.012
 }
-function toggleDebug() {
-  showDebug = !showDebug;
-  btnDbg.classList.toggle('on', showDebug);
-}
 document.addEventListener('keydown', e => {
   if (e.key === ' ')          { togglePlay(); e.preventDefault(); }
   if (e.key === 'ArrowRight') progress = (progress + 0.25) % 1;
   if (e.key === 'ArrowLeft')  progress = ((progress - 0.25) + 1) % 1;
-  if (e.key === 'd')          toggleDebug();
-});
-
-/* ─── 點擊校準：debug 模式時點畫面設定錨點 ──────── */
-canvas.addEventListener('click', e => {
-  if (!showDebug) return;
-  const rect = canvas.getBoundingClientRect();
-  const scaleX = canvas.width  / rect.width;
-  const scaleY = canvas.height / rect.height;
-  const cx = (e.clientX - rect.left) * scaleX;
-  const cy = (e.clientY - rect.top)  * scaleY;
-
-  const raw = ((progress % 1) + 1) % 1 * N;
-  const ci  = Math.floor(raw) % N;
-  const img = imgs[ci];
-  const dispH = DISPLAY_H[ci];
-  if (!img || !img.naturalWidth) return;
-
-  const scale = dispH / img.naturalHeight;
-  const dw = img.naturalWidth  * scale;
-  const dh = img.naturalHeight * scale;
-  const ox = ANCHOR.x - HIP[ci].rx * dw;
-  const oy = ANCHOR.y - HIP[ci].ry * dh;
-
-  const new_rx = (cx - ox) / dw;
-  const new_ry = (cy - oy) / dh;
-  if (new_rx < 0 || new_rx > 1 || new_ry < 0 || new_ry > 1) return;
-
-  HIP[ci].rx = +new_rx.toFixed(4);
-  HIP[ci].ry = +new_ry.toFixed(4);
-  draw(progress);
-
-  const msg = 'pose_' + (ci+1) + '  rx=' + HIP[ci].rx + '  ry=' + HIP[ci].ry;
-  console.log('[錨點校準]', msg);
-  ctx.save();
-  ctx.fillStyle = 'rgba(0,0,0,0.65)';
-  ctx.fillRect(4, canvas.height-22, canvas.width-8, 20);
-  ctx.fillStyle = '#4f4';
-  ctx.font = '12px monospace';
-  ctx.fillText(msg, 8, canvas.height-6);
-  ctx.restore();
 });
 </script>
 </body>
